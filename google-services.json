@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "198566255315",
+    "project_id": "retailflow-3e224",
+    "storage_bucket": "retailflow-3e224.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:198566255315:android:ef596ccca7e207792f5226",
+        "android_client_info": {
+          "package_name": "com.example.retailflow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "198566255315-8lnnt65b1d1nvfnnssn86t9gp3ghkc06.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.retailflow",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "198566255315-lp6hbcvqetilq3bft6uno6pqgtejvuaq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGSyc9hOCf46C7bOCANx9HCMGmsP1PUYM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "198566255315-lp6hbcvqetilq3bft6uno6pqgtejvuaq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
