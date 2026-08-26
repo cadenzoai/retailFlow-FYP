@@ -14,26 +14,17 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
-import { Search, LogOut, ShoppingBag, ArrowRight } from 'lucide-react-native';
-import { signOut } from 'firebase/auth';
-import { collection, getDocs, query } from 'firebase/firestore';
-import { auth, db } from '@/config/firebase';
+import { Search, LogOut, ShoppingBag } from 'lucide-react-native';
+import { useAuth } from '@/context/auth-context';
+import { getProducts, Product } from '@/api/products';
 
 const { width } = Dimensions.get('window');
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  image: string;
-  category: string;
-  stock: number;
-}
-
-const CATEGORIES = ["All", "Electronics", "Fashion", "Accessories"];
+const CATEGORIES = ['All', 'Electronics', 'Fashion', 'Accessories'];
 
 export default function HomeScreen() {
+  const { user, logout } = useAuth();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,27 +32,32 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  const applyFilters = (allItems: Product[], search: string, category: string) => {
+    let result = [...allItems];
+
+    if (category !== 'All') {
+      result = result.filter((p) => p.category.toLowerCase() === category.toLowerCase());
+    }
+
+    if (search.trim() !== '') {
+      const lowerSearch = search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(lowerSearch) ||
+          p.description.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    setFilteredProducts(result);
+  };
+
   const fetchProducts = async () => {
     try {
-      const q = query(collection(db, "products"));
-      const querySnapshot = await getDocs(q);
-      const items: Product[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        items.push({
-          id: doc.id,
-          name: data.name || '',
-          price: data.price || 0,
-          description: data.description || '',
-          image: data.image || '',
-          category: data.category || '',
-          stock: data.stock || 0
-        });
-      });
+      const items = await getProducts();
       setProducts(items);
       applyFilters(items, searchQuery, selectedCategory);
-    } catch (err) {
-      console.error("Error fetching products: ", err);
+    } catch (err: any) {
+      console.error('Error fetching products: ', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -71,24 +67,6 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchProducts();
   }, []);
-
-  const applyFilters = (allItems: Product[], search: string, category: string) => {
-    let result = [...allItems];
-
-    if (category !== 'All') {
-      result = result.filter(p => p.category.toLowerCase() === category.toLowerCase());
-    }
-
-    if (search.trim() !== '') {
-      const lowerSearch = search.toLowerCase();
-      result = result.filter(
-        p => p.name.toLowerCase().includes(lowerSearch) || 
-             p.description.toLowerCase().includes(lowerSearch)
-      );
-    }
-
-    setFilteredProducts(result);
-  };
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -106,36 +84,28 @@ export default function HomeScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error("Error signing out: ", err);
-    }
+    await logout();
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <View style={styles.productCard}>
       <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri: item.image }} 
-          style={styles.productImage}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText}>{item.category}</Text>
         </View>
       </View>
-      
+
       <View style={styles.productDetails}>
         <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.productDescription} numberOfLines={2}>{item.description}</Text>
-        
+
         <View style={styles.priceRow}>
           <View>
             <Text style={styles.priceLabel}>Price</Text>
             <Text style={styles.productPrice}>PKR {item.price.toLocaleString()}</Text>
           </View>
-          
+
           <TouchableOpacity style={styles.buyButton} activeOpacity={0.7}>
             <ShoppingBag size={16} color="#0F2027" />
           </TouchableOpacity>
@@ -147,13 +117,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Header Section */}
+
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Hello,</Text>
           <Text style={styles.userNameText}>
-            {auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || 'Guest'} 👋
+            {user?.name || user?.email?.split('@')[0] || 'Guest'} 👋
           </Text>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
@@ -161,7 +130,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Input */}
       <View style={styles.searchContainer}>
         <View style={styles.searchWrapper}>
           <Search size={20} color="#8A95A5" style={styles.searchIcon} />
@@ -175,7 +143,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Horizontal Category Chips */}
       <View style={styles.categoriesContainer}>
         <FlatList
           data={CATEGORIES}
@@ -200,7 +167,6 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Product List Grid */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#00d2ff" />
@@ -219,7 +185,7 @@ export default function HomeScreen() {
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor="#00d2ff"
-              colors={["#00d2ff"]}
+              colors={['#00d2ff']}
             />
           }
           ListEmptyComponent={
@@ -242,7 +208,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F2027',
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0
   },
   header: {
     flexDirection: 'row',
@@ -250,16 +216,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 8
   },
   welcomeText: {
     color: '#8A95A5',
-    fontSize: 14,
+    fontSize: 14
   },
   userNameText: {
     color: '#ffffff',
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
   logoutButton: {
     width: 44,
@@ -269,11 +235,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 107, 107, 0.15)',
+    borderColor: 'rgba(255, 107, 107, 0.15)'
   },
   searchContainer: {
     paddingHorizontal: 20,
-    marginVertical: 16,
+    marginVertical: 16
   },
   searchWrapper: {
     flexDirection: 'row',
@@ -283,22 +249,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     height: 50,
-    paddingHorizontal: 16,
+    paddingHorizontal: 16
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: 10
   },
   searchInput: {
     color: '#ffffff',
     flex: 1,
-    fontSize: 15,
+    fontSize: 15
   },
   categoriesContainer: {
-    marginBottom: 16,
+    marginBottom: 16
   },
   categoriesList: {
     paddingHorizontal: 20,
-    gap: 10,
+    gap: 10
   },
   categoryChip: {
     paddingHorizontal: 18,
@@ -306,29 +272,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.08)'
   },
   categoryChipSelected: {
     backgroundColor: '#00d2ff',
-    borderColor: '#00d2ff',
+    borderColor: '#00d2ff'
   },
   categoryChipText: {
     color: '#8A95A5',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   categoryChipTextSelected: {
     color: '#0F2027',
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
   productList: {
     paddingHorizontal: 12,
     paddingBottom: 100,
-    flexGrow: 1,
+    flexGrow: 1
   },
   gridRow: {
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 8
   },
   productCard: {
     width: (width - 48) / 2,
@@ -337,16 +303,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
-    overflow: 'hidden',
+    overflow: 'hidden'
   },
   imageContainer: {
     width: '100%',
     height: 130,
-    position: 'relative',
+    position: 'relative'
   },
   productImage: {
     width: '100%',
-    height: '100%',
+    height: '100%'
   },
   categoryBadge: {
     position: 'absolute',
@@ -357,45 +323,45 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.15)'
   },
   categoryBadgeText: {
     color: '#00d2ff',
     fontSize: 10,
     fontWeight: '700',
-    textTransform: 'uppercase',
+    textTransform: 'uppercase'
   },
   productDetails: {
-    padding: 12,
+    padding: 12
   },
   productName: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 4
   },
   productDescription: {
     color: '#8A95A5',
     fontSize: 11,
     lineHeight: 15,
-    marginBottom: 12,
+    marginBottom: 12
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'flex-end'
   },
   priceLabel: {
     color: '#5F6B7C',
     fontSize: 10,
     fontWeight: '500',
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 2
   },
   productPrice: {
     color: '#00d2ff',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: 'bold'
   },
   buyButton: {
     width: 34,
@@ -408,36 +374,36 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 3
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   loadingText: {
     color: '#8A95A5',
     fontSize: 14,
-    marginTop: 10,
+    marginTop: 10
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 80,
-    paddingHorizontal: 40,
+    paddingHorizontal: 40
   },
   emptyStateTitle: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,
-    marginBottom: 6,
+    marginBottom: 6
   },
   emptyStateSubtitle: {
     color: '#8A95A5',
     fontSize: 13,
     textAlign: 'center',
-    lineHeight: 18,
-  },
+    lineHeight: 18
+  }
 });

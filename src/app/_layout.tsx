@@ -1,41 +1,42 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/config/firebase';
-import LoginScreen from './login';
-import HomeScreen from './index';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { AuthProvider, useAuth } from '@/context/auth-context';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+function RootNavigator() {
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (usr) => {
-      setUser(usr);
-      if (initializing) {
-        setInitializing(false);
-        SplashScreen.hideAsync();
-      }
-    });
-    return unsubscribe;
-  }, [initializing]);
+    if (!loading) {
+      SplashScreen.hideAsync();
+    }
+  }, [loading]);
 
-  if (initializing) {
+  if (loading) {
     return null;
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {user ? (
-        <HomeScreen />
+    <Stack screenOptions={{ headerShown: false }}>
+      {!user ? (
+        <Stack.Screen name="(auth)" />
+      ) : user.role === 'admin' ? (
+        <Stack.Screen name="admin" />
       ) : (
-        <LoginScreen />
+        <Stack.Screen name="(tabs)" />
       )}
-    </ThemeProvider>
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <StatusBar style="light" />
+      <RootNavigator />
+    </AuthProvider>
   );
 }
