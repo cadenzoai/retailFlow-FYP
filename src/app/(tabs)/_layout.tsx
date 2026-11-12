@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router';
 import { Home, ShoppingCart, Package, User } from 'lucide-react-native';
+import { useCart } from '@/context/cart-context';
 
 export default function TabsLayout() {
+  const { count } = useCart();
+
   return (
     <Tabs
       screenOptions={{
@@ -25,6 +28,7 @@ export default function TabsLayout() {
         name="cart"
         options={{
           title: 'Cart',
+          tabBarBadge: count > 0 ? count : undefined,
           tabBarIcon: ({ color }) => <ShoppingCart size={22} color={color} />
         }}
       />
@@ -42,6 +46,8 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <User size={22} color={color} />
         }}
       />
+      <Tabs.Screen name="product/[id]" options={{ href: null }} />
+      <Tabs.Screen name="checkout" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -1,11 +1,11 @@
-import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'retailflow_token';
 
 const DEFAULT_BASE_URL =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:4000'
+    ? 'http://192.168.18.209:4000'
     : 'http://localhost:4000';
 
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_BASE_URL;

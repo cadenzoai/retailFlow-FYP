@@ -14,6 +14,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
+import { Href, router } from 'expo-router';
 import { Search, LogOut, ShoppingBag } from 'lucide-react-native';
 import { useAuth } from '@/context/auth-context';
 import { getProducts, Product } from '@/api/products';
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -56,8 +58,9 @@ export default function HomeScreen() {
       const items = await getProducts();
       setProducts(items);
       applyFilters(items, searchQuery, selectedCategory);
+      setError('');
     } catch (err: any) {
-      console.error('Error fetching products: ', err);
+      setError(err?.message || 'Could not load products');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -88,7 +91,11 @@ export default function HomeScreen() {
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
-    <View style={styles.productCard}>
+    <TouchableOpacity
+      style={styles.productCard}
+      activeOpacity={0.85}
+      onPress={() => router.push(`/product/${item.id}` as Href)}
+    >
       <View style={styles.imageContainer}>
         <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
         <View style={styles.categoryBadge}>
@@ -106,12 +113,12 @@ export default function HomeScreen() {
             <Text style={styles.productPrice}>PKR {item.price.toLocaleString()}</Text>
           </View>
 
-          <TouchableOpacity style={styles.buyButton} activeOpacity={0.7}>
+          <View style={styles.buyButton}>
             <ShoppingBag size={16} color="#0F2027" />
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -171,6 +178,11 @@ export default function HomeScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#00d2ff" />
           <Text style={styles.loadingText}>Fetching products...</Text>
+        </View>
+      ) : error && products.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateTitle}>Could not load products</Text>
+          <Text style={styles.emptyStateSubtitle}>{error}</Text>
         </View>
       ) : (
         <FlatList
